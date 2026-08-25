@@ -93,7 +93,7 @@ ans2 = st.text_input(
     value=st.session_state.ans2_val,
 )
 ans3 = st.text_input(
-    "ข้อ 3: An `w a _ e r m e _ o n` a day keeps the doctor away. 🍉 ",
+    "ข้อ 3: A `w a _ e r m e _ o n` eat on a hot day . 🍉 ",
     value=st.session_state.ans1_val,
 )
 ans4 = st.text_input(
