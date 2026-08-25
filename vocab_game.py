@@ -106,7 +106,7 @@ ans3 = st.text_input(
     value=st.session_state.ans3_val,
 )
 ans4 = st.text_input(
-    "ข้อ 4: students always carry to school `b a _ k p _ c k`. 🎒",
+    "ข้อ 4: students always carry `b a _ k p _ c k` to school . 🎒",
     value=st.session_state.ans4_val,
 )
 
