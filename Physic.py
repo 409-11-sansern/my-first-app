@@ -1,3 +1,4 @@
+import random
 import time
 import streamlit as st
 
@@ -6,54 +7,56 @@ st.set_page_config(
     page_title="เกมทายสูตรฟิสิกส์ การเคลื่อนที่แนวตรง", page_icon="⚡"
 )
 
-# ข้อมูล 5 สูตรหลักการเคลื่อนที่แนวตรง (ความเร่งคงที่)
+# ข้อมูลสูตรฟิสิกส์ 5 ข้อ (พร้อมตัวเลือกหลอก)
 QUESTIONS = [
     {
-        "title": "สูตรหาความเร็วปลาย (ไม่มีระยะทาง s)",
+        "title": "1. สูตรหาความเร็วปลาย (เมื่อไม่มีระยะทาง s)",
         "hint": "ความเร็วปลาย = ความเร็วต้น + (ความเร่ง x เวลา)",
-        "answers": ["v=u+at", "v = u + at", "v=u+(a*t)"],
+        "correct": "v = u + at",
+        "choices": ["v = u + at", "v = u - at", "v = u + 2at", "v = at / u"],
     },
     {
-        "title": "สูตรหาระยะทาง (ไม่มีความเร่ง a)",
+        "title": "2. สูตรหาระยะทาง (เมื่อไม่มีความเร่ง a)",
         "hint": "ระยะทาง = [(ความเร็วต้น + ความเร็วปลาย) / 2] x เวลา",
-        "answers": [
-            "s=((u+v)/2)*t",
-            "s = ((u+v)/2)t",
-            "s=((u+v)/2)t",
+        "correct": "s = ((u + v) / 2) * t",
+        "choices": [
             "s = ((u + v) / 2) * t",
-            "s = (u+v)t/2",
+            "s = ((u - v) / 2) * t",
+            "s = (u + v) * t",
+            "s = ((u + v) / t) * 2",
         ],
     },
     {
-        "title": "สูตรหาระยะทาง (ไม่มีความเร็วปลาย v)",
+        "title": "3. สูตรหาระยะทาง (เมื่อไม่มีความเร็วปลาย v)",
         "hint": "ระยะทาง = (ความเร็วต้น x เวลา) + (1/2 x ความเร่ง x เวลายกกำลังสอง)",
-        "answers": [
-            "s=ut+1/2at^2",
-            "s = ut + 1/2at^2",
-            "s=ut+(1/2)at^2",
-            "s = ut + 0.5at^2",
-            "s = ut + 1/2 a t^2",
+        "correct": "s = ut + (1/2)at²",
+        "choices": [
+            "s = ut + (1/2)at²",
+            "s = ut - (1/2)at²",
+            "s = vt + (1/2)at²",
+            "s = ut + at²",
         ],
     },
     {
-        "title": "สูตรหาระยะทาง (ไม่มีความเร็วต้น u)",
+        "title": "4. สูตรหาระยะทาง (เมื่อไม่มีความเร็วต้น u)",
         "hint": "ระยะทาง = (ความเร็วปลาย x เวลา) - (1/2 x ความเร่ง x เวลายกกำลังสอง)",
-        "answers": [
-            "s=vt-1/2at^2",
-            "s = vt - 1/2at^2",
-            "s=vt-(1/2)at^2",
-            "s = vt - 0.5at^2",
-            "s = vt - 1/2 a t^2",
+        "correct": "s = vt - (1/2)at²",
+        "choices": [
+            "s = vt - (1/2)at²",
+            "s = vt + (1/2)at²",
+            "s = ut - (1/2)at²",
+            "s = vt - at²",
         ],
     },
     {
-        "title": "สูตรหาความเร็วปลายยกกำลังสอง (ไม่มีเวลา t)",
-        "hint": "ความเร็วปลายยกกำลังสอง = ความเร็วต้นยกกำลังสอง + (2 x ความเร่ง x ระยะทาง)",
-        "answers": [
-            "v^2=u^2+2as",
-            "v^2 = u^2 + 2as",
-            "v^2=u^2+2*a*s",
-            "v^2 = u^2 + 2 a s",
+        "title": "5. สูตรหาความเร็วปลายยกกำลังสอง (เมื่อไม่มีเวลา t)",
+        "hint": "ความเร็วปลาย² = ความเร็วต้น² + (2 x ความเร่ง x ระยะทาง)",
+        "correct": "v² = u² + 2as",
+        "choices": [
+            "v² = u² + 2as",
+            "v² = u² - 2as",
+            "v² = u² + as",
+            "v = u² + 2as",
         ],
     },
 ]
@@ -65,14 +68,18 @@ if "start_time" not in st.session_state:
     st.session_state.start_time = None
 if "game_over" not in st.session_state:
     st.session_state.game_over = False
+if "shuffled_choices" not in st.session_state:
+    # สุ่มลำดับตัวเลือกเก็บไว้
+    st.session_state.shuffled_choices = []
+    for q in QUESTIONS:
+        choices = q["choices"].copy()
+        random.shuffle(choices)
+        st.session_state.shuffled_choices.append(choices)
 
 st.title("⚡ เกมทายสูตรฟิสิกส์ ม.4")
-st.subheader("หัวข้อ: การเคลื่อนที่แนวตรง 5 สูตรหลัก")
+st.subheader("หัวข้อ: การเคลื่อนที่แนวตรง (กดเลือกตัวเลือกที่ถูกต้อง)")
 st.write(
-    "พิมพ์สูตรฟิสิกส์ให้ถูกต้องครบทั้ง 5 ข้อ ภายในเวลา **1 นาที 7 วินาที**!"
-)
-st.caption(
-    "📌 ตัวอย่างการพิมพ์: `v = u + at`, `s = ut + 1/2at^2`, `v^2 = u^2 + 2as` (ใช้สัญลักษณ์ ^ สำหรับกำลังสอง)"
+    "เลือกสูตรฟิสิกส์ให้ถูกต้องครบทั้ง 5 ข้อ ภายในเวลา **1 นาที 7 วินาที**!"
 )
 
 # ปุ่มเริ่มเกม
@@ -100,17 +107,21 @@ else:
         st.error("⏰ หมดเวลาแล้ว!")
 
     # ฟอร์มใส่คำตอบ
-    with st.form("physics_quiz_form"):
+    with st.form("physics_choice_quiz"):
         user_answers = []
         for i, q in enumerate(QUESTIONS):
-            st.markdown(f"### ข้อที่ {i+1}: {q['title']}")
+            st.markdown(f"### {q['title']}")
             st.info(f"💡 คำใบ้: {q['hint']}")
-            ans = st.text_input(
-                f"ตอบสูตรข้อที่ {i+1}:", key=f"q_{i}", placeholder="เช่น v = u + at"
+
+            # ตัวเลือก Radio
+            selected = st.radio(
+                "เลือกสูตรที่ถูกต้อง:",
+                options=st.session_state.shuffled_choices[i],
+                key=f"q_{i}",
+                index=None,  # ยังไม่ได้เลือก
             )
-            # เคลียร์ช่องว่างและแปลงเป็นตัวพิมพ์เล็กเพื่อเทียบคำตอบง่ายขึ้น
-            clean_ans = ans.strip().lower().replace(" ", "")
-            user_answers.append(clean_ans)
+            user_answers.append(selected)
+            st.markdown("---")
 
         submitted = st.form_submit_button(
             "ส่งคำตอบ 🚀", disabled=st.session_state.game_over
@@ -119,24 +130,18 @@ else:
     # ตรวจคำตอบเมื่อกดส่ง
     if submitted and not st.session_state.game_over:
         score = 0
-        st.markdown("---")
         st.header("📊 ผลคะแนน")
 
         for i, q in enumerate(QUESTIONS):
             user_ans = user_answers[i]
-            # แปลงเฉลยทุกรูปแบบให้ไม่มีช่องว่าง
-            valid_answers = [
-                a.strip().lower().replace(" ", "") for a in q["answers"]
-            ]
+            correct_ans = q["correct"]
 
-            if user_ans in valid_answers:
+            if user_ans == correct_ans:
                 score += 1
-                st.success(
-                    f"ข้อ {i+1}: ถูกต้อง! 🎉 (เฉลย: {q['answers'][0]})"
-                )
+                st.success(f"ข้อ {i+1}: ถูกต้อง! 🎉 ({correct_ans})")
             else:
                 st.error(
-                    f"ข้อ {i+1}: ผิด! ❌ (เฉลยที่ถูกคือ: {q['answers'][0]})"
+                    f"ข้อ {i+1}: ผิด! ❌ (คุณเลือก: {user_ans if user_ans else 'ไม่ได้เลือก'} | เฉลยที่ถูกคือ: {correct_ans})"
                 )
 
         st.subheader(f"🏆 คุณได้คะแนนทั้งหมด {score} / 5 คะแนน!")
@@ -145,4 +150,12 @@ else:
     if st.button("เล่นใหม่อีกครั้ง 🔄"):
         st.session_state.start_time = None
         st.session_state.game_over = False
+
+        # สุ่มตัวเลือกใหม่
+        st.session_state.shuffled_choices = []
+        for q in QUESTIONS:
+            choices = q["choices"].copy()
+            random.shuffle(choices)
+            st.session_state.shuffled_choices.append(choices)
+
         st.rerun()
