@@ -1,10 +1,10 @@
 import time
-import streamlit as st
+import tkinter as tk
+from tkinter import messagebox
+import urllib.request
+from PIL import Image, ImageTk
 
-# ตั้งค่าหน้าเว็บ
-st.set_page_config(page_title="เกมทายธงชาติ", page_icon="🚩")
-
-# ข้อมูลควิซ 7 ประเทศ (รูปภาพธงชาติ URL และเฉลยภาษาไทย)
+# ข้อมูลควิซ 7 ประเทศ ( URL รูปภาพ และ เฉลย )
 QUESTIONS = [
     {
         "flag": "https://flagcdn.com/w320/th.png",
@@ -32,85 +32,162 @@ QUESTIONS = [
     },
     {
         "flag": "https://flagcdn.com/w320/gb.png",
-        "answer": ["อังกฤษ", "สหราชอาณาจักร", "uk", "united kingdom"],
+        "answer": ["อังกฤษ", "สหราชอาณาจักร", "uk"],
     },
 ]
 
-TOTAL_TIME = 67  # 1 นาที 7 วินาที
+# ตัวแปรควบคุมเกม
+current_question = 0
+score = 0
+time_left = 67  # 1 นาที 7 วินาที
+timer_running = False
 
-# Initialize State
-if "start_time" not in st.session_state:
-    st.session_state.start_time = None
-if "game_over" not in st.session_state:
-    st.session_state.game_over = False
 
-st.title("🚩 เกมทายชื่อประเทศจากธงชาติ")
-st.write("ทายชื่อประเทศ 7 ประเทศให้ครบภายในเวลา **1 นาที 7 วินาที**!")
+# ฟังก์ชันโหลดรูปจาก URL
+def load_image_from_url(url):
+    req = urllib.request.urlopen(url)
+    img_data = req.read()
+    from io import BytesIO
 
-# ปุ่มเริ่มเกม
-if st.session_state.start_time is None:
-    if st.button("เริ่มเล่นเกม! ⏱️", type="primary"):
-        st.session_state.start_time = time.time()
-        st.session_state.game_over = False
-        st.rerun()
+    img = Image.open(BytesIO(img_data))
+    img = img.resize((200, 120))
+    return ImageTk.PhotoImage(img)
 
-else:
-    # คำนวณเวลาที่เหลือ
-    elapsed_time = time.time() - st.session_state.start_time
-    remaining_time = max(0, int(TOTAL_TIME - elapsed_time))
 
-    # แสดงตัวนับเวลา
-    time_display = st.empty()
-    minutes = remaining_time // 60
-    seconds = remaining_time % 60
-    time_display.metric(
-        "⏱️ เวลาที่เหลือ", f"{minutes:02d}:{seconds:02d}"
+# ฟังก์ชันนับเวลาถอยหลัง
+def update_timer():
+    global time_left, timer_running
+    if timer_running and time_left > 0:
+        time_left -= 1
+        minutes = time_left // 60
+        seconds = time_left % 60
+        lbl_timer.config(
+            text=f"เวลาที่เหลือ: {minutes:02d}:{seconds:02d}"
+        )
+        root.after(1000, update_timer)
+    elif time_left == 0 and timer_running:
+        timer_running = False
+        messagebox.showinfo("หมดเวลา", "เวลาหมดแล้วครับ!")
+        finish_game()
+
+
+# ฟังก์ชันเริ่มเกม
+def start_game():
+    global current_question, score, time_left, timer_running
+    current_question = 0
+    score = 0
+    time_left = 67
+    timer_running = True
+
+    btn_start.pack_forget()
+    frame_game.pack(pady=10)
+
+    show_question()
+    update_timer()
+
+
+# ฟังก์ชันแสดงข้อสอบ
+def show_question():
+    global img_holder
+    q = QUESTIONS[current_question]
+
+    lbl_num.config(
+        text=f"ข้อที่ {current_question + 1} / {len(QUESTIONS)}"
     )
 
-    if remaining_time == 0:
-        st.session_state.game_over = True
-        st.error("⏰ หมดเวลาแล้ว!")
+    # โหลดรูปธง
+    img_holder = load_image_from_url(q["flag"])
+    lbl_flag.config(image=img_holder)
 
-    # ฟอร์มใส่คำตอบ
-    with st.form("flag_quiz_form"):
-        user_answers = []
-        for i, q in enumerate(QUESTIONS):
-            st.subheader(f"ข้อที่ {i+1}")
-            st.image(q["flag"], width=200)
-            ans = st.text_input(
-                f"ประเทศอะไรเอ่ย? (ข้อ {i+1})", key=f"q_{i}"
-            )
-            user_answers.append(ans.strip().lower())
+    ent_answer.delete(0, tk.END)
+    ent_answer.focus()
 
-        submitted = st.form_submit_button(
-            "ส่งคำตอบ 🚀", disabled=st.session_state.game_over
-        )
 
-    # ตรวจคำตอบเมื่อกดส่ง
-    if submitted and not st.session_state.game_over:
-        score = 0
-        st.markdown("---")
-        st.header("📊 ผลคะแนน")
+# ฟังก์ชันตรวจคำตอบ
+def check_answer(event=None):
+    global current_question, score
 
-        for i, q in enumerate(QUESTIONS):
-            user_ans = user_answers[i]
-            correct_answers = [a.lower() for a in q["answer"]]
+    if not timer_running:
+        return
 
-            if user_ans in correct_answers:
-                score += 1
-                st.success(
-                    f"ข้อ {i+1}: ถูกต้อง! 🎉 (คำตอบ: {q['answer'][0]})"
-                )
-            else:
-                st.error(
-                    f"ข้อ {i+1}: ผิด! ❌ (ตอบ: '{user_ans}' | เฉลย: {q['answer'][0]})"
-                )
+    user_ans = ent_answer.get().strip().lower()
+    correct_answers = QUESTIONS[current_question]["answer"]
 
-        st.balloons()
-        st.subheader(f"🏆 คุณได้คะแนนทั้งหมด {score} / 7 คะแนน!")
+    if user_ans in correct_answers:
+        score += 1
 
-    # ปุ่มเริ่มใหม่
-    if st.button("เล่นใหม่อีกครั้ง 🔄"):
-        st.session_state.start_time = None
-        st.session_state.game_over = False
-        st.rerun()
+    current_question += 1
+
+    if current_question < len(QUESTIONS):
+        show_question()
+    else:
+        finish_game()
+
+
+# ฟังก์ชันจบเกม
+def finish_game():
+    global timer_running
+    timer_running = False
+    frame_game.pack_forget()
+
+    lbl_timer.config(text="จบการแข่งขัน!")
+    messagebox.showinfo(
+        "สรุปผลคะแนน", f"คุณได้คะแนนทั้งหมด {score} / 7 คะแนน"
+    )
+    btn_start.config(text="เล่นใหม่อีกครั้ง")
+    btn_start.pack(pady=20)
+
+
+# สร้างหน้าต่างโปรแกรม
+root = tk.Tk()
+root.title("เกมทายธงชาติ (ม.4)")
+root.geometry("400x450")
+
+# หัวข้อ
+lbl_title = tk.Label(
+    root, text="เกมทายชื่อประเทศจากธงชาติ", font=("Tahoma", 16, "bold")
+)
+lbl_title.pack(pady=10)
+
+# แสดงเวลา
+lbl_timer = tk.Label(
+    root, text="เวลาที่เหลือ: 01:07", font=("Tahoma", 14), fg="red"
+)
+lbl_timer.pack(pady=5)
+
+# ปุ่มเริ่มเล่น
+btn_start = tk.Button(
+    root,
+    text="เริ่มเล่นเกม",
+    font=("Tahoma", 14),
+    bg="#4CAF50",
+    fg="white",
+    command=start_game,
+)
+btn_start.pack(pady=20)
+
+# เฟรมเก็บองค์ประกอบเกม
+frame_game = tk.Frame(root)
+
+lbl_num = tk.Label(frame_game, font=("Tahoma", 12))
+lbl_num.pack(pady=5)
+
+lbl_flag = tk.Label(frame_game)
+lbl_flag.pack(pady=10)
+
+lbl_prompt = tk.Label(
+    frame_game, text="พิมพ์ชื่อประเทศ:", font=("Tahoma", 11)
+)
+lbl_prompt.pack(pady=5)
+
+ent_answer = tk.Entry(frame_game, font=("Tahoma", 12), justify="center")
+ent_answer.pack(pady=5)
+ent_answer.bind("<Return>", check_answer)  # กด Enter เพื่อตอบได้
+
+btn_submit = tk.Button(
+    frame_game, text="ตอบข้อนี้", font=("Tahoma", 11), command=check_answer
+)
+btn_submit.pack(pady=10)
+
+# เริ่มรันแอปพลิเคชัน
+root.mainloop()
